@@ -7,8 +7,6 @@
     
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- QRCode.js for the Admin QR generator -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <!-- MathJax for rendering LaTeX math equations -->
     <script>
@@ -61,8 +59,8 @@
             <div id="quiz-screen" class="hidden">
                 <div class="flex justify-between items-center mb-4">
                     <span id="question-progress" class="text-sm font-semibold text-gray-500">Question 1 of 4</span>
-                    <!-- Stopwatch replaces countdown -->
-                    <span id="timer-display" class="text-xl font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded">Time: 0s</span>
+                    <!-- Stopwatch -->
+                    <span id="timer-display" class="text-xl font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded">Time: 00:00</span>
                 </div>
                 
                 <h2 id="question-text" class="text-xl font-semibold mb-6 math-scroll"></h2>
@@ -154,10 +152,12 @@
 
                 <!-- Right Column: QR, Questions, and Results -->
                 <div class="space-y-6">
+                    <!-- QR Code Section - FIXED -->
                     <div class="bg-blue-50 p-4 rounded border border-blue-200 text-center">
                         <h3 class="font-bold mb-2 text-blue-800">Student QR Code</h3>
-                        <div id="qrcode" class="flex justify-center mb-3"></div>
-                        <button onclick="generateQR()" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">Generate for current URL</button>
+                        <!-- Replaced JS library with a direct Image API -->
+                        <img id="qrcode-img" src="" alt="QR Code" class="mx-auto mb-3 w-32 h-32 border-4 border-white shadow-sm rounded">
+                        <button onclick="generateQR()" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">Refresh QR Code</button>
                     </div>
 
                     <div class="bg-gray-50 p-4 rounded border">
@@ -239,18 +239,18 @@
         let currentQIndex = 0;
         let score = 0;
         let timerInterval;
-        let timeElapsed = 0; // Stopwatch counter in seconds
+        let timeElapsed = 0; 
         let isAnswered = false;
         
         let studentName = '';
         let quizStartTime = 0;
-        let studentAnswers = []; // Stores detailed per-question data
+        let studentAnswers = []; 
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             renderAdminQuestions();
             renderStudentResults();
-            generateQR();
+            // Removed generateQR() from here. It will be called when the Admin view is opened.
         });
 
         function typesetMath() {
@@ -278,6 +278,7 @@
             } else {
                 document.getElementById('admin-view').classList.remove('hidden');
                 renderStudentResults(); 
+                generateQR(); // Generate QR when admin view becomes visible!
             }
         }
 
@@ -386,6 +387,14 @@
             document.body.removeChild(link);
         }
 
+        // --- QR CODE GENERATION (NEW API METHOD) ---
+        function generateQR() {
+            const currentUrl = window.location.href;
+            // Using a free, reliable API to generate the image
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentUrl)}`;
+            document.getElementById('qrcode-img').src = qrApiUrl;
+        }
+
         // --- QUIZ ENGINE ---
         function startQuiz() {
             const nameInput = document.getElementById('student-name').value.trim();
@@ -399,7 +408,7 @@
             quizStartTime = Date.now(); 
             currentQIndex = 0;
             score = 0;
-            studentAnswers = []; // Reset detailed tracking
+            studentAnswers = []; 
             
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.add('hidden');
@@ -409,7 +418,7 @@
 
         function loadQuestion() {
             isAnswered = false;
-            timeElapsed = 0; // Reset stopwatch for the new question
+            timeElapsed = 0; 
             const q = questions[currentQIndex];
             
             document.getElementById('question-progress').innerText = `Question ${currentQIndex + 1} of ${questions.length}`;
@@ -429,7 +438,7 @@
             });
 
             typesetMath();
-            startStopwatch(); // Start counting up
+            startStopwatch(); 
         }
 
         function startStopwatch() {
@@ -443,7 +452,6 @@
         }
 
         function updateTimerDisplay() {
-            // Format as mm:ss if needed, but for simplicity, just show total seconds.
             const minutes = Math.floor(timeElapsed / 60);
             const seconds = timeElapsed % 60;
             const formatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -453,16 +461,14 @@
         function selectAnswer(selectedIndex, btnElement) {
             if (isAnswered) return;
             isAnswered = true;
-            clearInterval(timerInterval); // Stop the stopwatch
+            clearInterval(timerInterval); 
 
             const q = questions[currentQIndex];
             const isCorrect = selectedIndex === q.correctIndex;
             const allButtons = document.getElementById('options-container').children;
 
-            // Record the time spent on this specific question
             const timeSpentOnThisQ = timeElapsed;
 
-            // Store data for the results screen
             studentAnswers.push({
                 questionText: q.question,
                 selectedOption: q.options[selectedIndex],
@@ -521,13 +527,11 @@
             clearInterval(timerInterval);
             const quizEndTime = Date.now();
             
-            // Calculate total time taken for the entire quiz
             const totalTimeSeconds = Math.round((quizEndTime - quizStartTime) / 1000);
             const minutes = Math.floor(totalTimeSeconds / 60);
             const seconds = totalTimeSeconds % 60;
             const formattedTotalTime = `${minutes}m ${seconds}s`;
 
-            // SAVE SUMMARY TO LOCAL STORAGE (For Admin Panel)
             const results = JSON.parse(localStorage.getItem('quizResults')) || [];
             results.push({
                 name: studentName,
@@ -537,7 +541,6 @@
             });
             localStorage.setItem('quizResults', JSON.stringify(results));
 
-            // BUILD DETAILED TABLE FOR STUDENT
             const detailedBody = document.getElementById('detailed-results-body');
             detailedBody.innerHTML = '';
             
@@ -545,7 +548,6 @@
                 const tr = document.createElement('tr');
                 tr.className = "border-b hover:bg-gray-50";
                 
-                // Format the time for this specific question
                 const qMin = Math.floor(ans.timeSpent / 60);
                 const qSec = ans.timeSpent % 60;
                 const qTimeFormatted = qMin > 0 ? `${qMin}m ${qSec}s` : `${qSec}s`;
@@ -559,13 +561,11 @@
                 detailedBody.appendChild(tr);
             });
 
-            // Update UI
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.remove('hidden');
             document.getElementById('final-score').innerText = `${score} / ${questions.length}`;
             document.getElementById('time-taken').innerText = formattedTotalTime;
             
-            // Render MathJax in the new detailed table
             typesetMath();
         }
 
