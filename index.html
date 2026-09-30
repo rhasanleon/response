@@ -4,15 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Math Quiz</title>
+    
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- QRCode.js for the Admin QR generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- MathJax for rendering LaTeX math equations -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
     <style>
         .correct { background-color: #22c55e !important; color: white !important; }
         .wrong { background-color: #ef4444 !important; color: white !important; }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .math-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 5px; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
@@ -31,7 +50,9 @@
             <!-- Start Screen -->
             <div id="start-screen" class="text-center">
                 <h1 class="text-3xl font-bold mb-4 text-blue-600">Daily Quiz</h1>
-                <p class="mb-6 text-gray-600">Test your knowledge! You have a set time limit per question.</p>
+                <p class="mb-4 text-gray-600">Please enter your name to begin:</p>
+                <input type="text" id="student-name" class="w-full max-w-xs p-3 border border-gray-300 rounded mb-6 text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your Name">
+                <br>
                 <button onclick="startQuiz()" class="bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-bold hover:bg-blue-700 transition">Start Quiz</button>
             </div>
 
@@ -42,7 +63,7 @@
                     <span id="timer-display" class="text-xl font-bold text-red-600 bg-red-100 px-3 py-1 rounded">Time: 60s</span>
                 </div>
                 
-                <h2 id="question-text" class="text-xl font-semibold mb-6"></h2>
+                <h2 id="question-text" class="text-xl font-semibold mb-6 math-scroll"></h2>
                 
                 <div id="options-container" class="space-y-3 mb-6">
                     <!-- Options will be injected here -->
@@ -50,7 +71,7 @@
 
                 <div id="feedback-container" class="hidden p-4 rounded bg-gray-50 border border-gray-200">
                     <h3 id="feedback-title" class="font-bold text-lg mb-2"></h3>
-                    <p id="feedback-explanation" class="text-gray-700 text-sm"></p>
+                    <p id="feedback-explanation" class="text-gray-700 text-sm math-scroll"></p>
                 </div>
 
                 <button id="next-btn" onclick="nextQuestion()" class="hidden w-full mt-6 bg-blue-600 text-white px-6 py-3 rounded font-bold hover:bg-blue-700 transition">Next Question</button>
@@ -59,23 +80,25 @@
             <!-- Results Screen -->
             <div id="result-screen" class="hidden text-center">
                 <h2 class="text-3xl font-bold mb-4 text-green-600">Quiz Completed!</h2>
-                <p class="text-xl mb-6">Your Score: <span id="final-score" class="font-bold"></span></p>
+                <p class="text-xl mb-2">Your Score: <span id="final-score" class="font-bold"></span></p>
+                <p class="text-lg mb-6 text-gray-600">Time taken: <span id="time-taken" class="font-bold"></span></p>
                 <button onclick="resetQuiz()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">Try Again</button>
             </div>
         </div>
 
         <!-- ===================== ADMIN VIEW ===================== -->
-        <div id="admin-view" class="w-full max-w-4xl bg-white p-6 rounded-lg shadow-lg hidden fade-in">
+        <div id="admin-view" class="w-full max-w-5xl bg-white p-6 rounded-lg shadow-lg hidden fade-in">
             <h2 class="text-2xl font-bold mb-4 text-blue-600">Admin Panel</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Add Question Form -->
+                <!-- Left Column: Add Question -->
                 <div class="bg-gray-50 p-4 rounded border">
                     <h3 class="font-bold mb-3 text-lg">Add New Question</h3>
+                    <p class="text-xs text-blue-600 mb-2">Tip: Use LaTeX for math. e.g., <code>\\( x^2 \\)</code> for inline, or <code>\\[ \\frac{1}{2} \\]</code> for block math.</p>
                     <form id="add-question-form" class="space-y-3">
                         <div>
                             <label class="block text-sm font-medium">Question Text</label>
-                            <textarea id="q-text" required class="w-full p-2 border rounded" rows="3" placeholder="e.g., Use the quotient rule to find h'(x)..."></textarea>
+                            <textarea id="q-text" required class="w-full p-2 border rounded" rows="3" placeholder="e.g., Evaluate \\(h'(a)\\) for \\[ h(x) = \\frac{3x^2}{x^2 + 9x + 9} \\]"></textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium">Options (Select the correct one)</label>
@@ -110,11 +133,10 @@
                     </form>
                 </div>
 
-                <!-- QR Code & Current Questions -->
+                <!-- Right Column: QR, Questions, and Results -->
                 <div class="space-y-6">
                     <div class="bg-blue-50 p-4 rounded border border-blue-200 text-center">
                         <h3 class="font-bold mb-2 text-blue-800">Student QR Code</h3>
-                        <p class="text-sm text-blue-600 mb-3">Scan this to open the quiz on a phone</p>
                         <div id="qrcode" class="flex justify-center mb-3"></div>
                         <button onclick="generateQR()" class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">Generate for current URL</button>
                     </div>
@@ -124,9 +146,32 @@
                             <h3 class="font-bold text-lg">Current Questions</h3>
                             <button onclick="resetToDefault()" class="text-xs text-red-500 hover:underline">Reset to Default</button>
                         </div>
-                        <ul id="admin-question-list" class="space-y-2 max-h-60 overflow-y-auto text-sm">
+                        <ul id="admin-question-list" class="space-y-2 max-h-40 overflow-y-auto text-sm">
                             <!-- List of questions will be injected here -->
                         </ul>
+                    </div>
+
+                    <!-- NEW: Student Results Section -->
+                    <div class="bg-gray-50 p-4 rounded border">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-lg">Student Results</h3>
+                            <button onclick="clearResults()" class="text-xs text-red-500 hover:underline">Clear All Results</button>
+                        </div>
+                        <div class="overflow-x-auto max-h-60">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead class="bg-gray-200 sticky top-0">
+                                    <tr>
+                                        <th class="p-2 border-b">Name</th>
+                                        <th class="p-2 border-b">Score</th>
+                                        <th class="p-2 border-b">Time</th>
+                                        <th class="p-2 border-b">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-list">
+                                    <!-- Results will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -135,34 +180,34 @@
     </main>
 
     <script>
-        // --- DEFAULT DATA (From your requirements) ---
+        // --- DEFAULT DATA (Formatted with LaTeX) ---
         const defaultQuestions = [
             {
-                question: "Use the quotient rule to evaluate h'(a) for the given function h(x) and a. h(x) = 3x^2 / (x^2 + 9x + 9), a = -3",
-                options: ["A) -9", "B) 1", "C) -1", "D) 3"],
-                correctIndex: 1, // B) 1
-                explanation: "h'(x) = (27x^2 + 54x) / (x^2 + 9x + 9)^2. Plugging in x = -3: Numerator = 81, Denominator = 81. 81/81 = 1.",
+                question: "Use the quotient rule to evaluate \\(h'(a)\\) for the given function \\(h(x)\\) and \\(a\\). \\[ h(x) = \\frac{3x^2}{x^2 + 9x + 9}, \\quad a = -3 \\]",
+                options: ["A) \\(-9\\)", "B) \\(1\\)", "C) \\(-1\\)", "D) \\(3\\)"],
+                correctIndex: 1,
+                explanation: "\\(h'(x) = \\frac{(6x)(x^2+9x+9) - (3x^2)(2x+9)}{(x^2+9x+9)^2} = \\frac{27x^2 + 54x}{(x^2+9x+9)^2}\\). Plugging in \\(x = -3\\): Numerator = \\(81\\), Denominator = \\(81\\). \\(81/81 = 1\\).",
                 timeLimitSeconds: 60
             },
             {
-                question: "Use the quotient rule to find the derivative, h'(x), of the following function. h(x) = -10x / (3x^2 - 7x - 5)",
-                options: ["A) (-30x^2 - 50) / (3x^2 - 7x - 5)^2", "B) (30x^2 + 50) / (3x^2 - 7x - 5)", "C) (30x^2 + 50) / (3x^2 - 7x - 5)^2", "D) (-60x + 70) / (3x^2 - 7x - 5)^2"],
-                correctIndex: 2, // C
-                explanation: "h'(x) = [(-10)(3x^2-7x-5) - (-10x)(6x-7)] / (3x^2-7x-5)^2 = (30x^2 + 50) / (3x^2 - 7x - 5)^2.",
+                question: "Use the quotient rule to find the derivative, \\(h'(x)\\), of the following function. \\[ h(x) = -\\frac{10x}{3x^2 - 7x - 5} \\]",
+                options: ["A) \\(\\frac{-30x^2 - 50}{(3x^2 - 7x - 5)^2}\\)", "B) \\(\\frac{30x^2 + 50}{3x^2 - 7x - 5}\\)", "C) \\(\\frac{30x^2 + 50}{(3x^2 - 7x - 5)^2}\\)", "D) \\(\\frac{-60x + 70}{(3x^2 - 7x - 5)^2}\\)"],
+                correctIndex: 2,
+                explanation: "\\(h'(x) = \\frac{(-10)(3x^2-7x-5) - (-10x)(6x-7)}{(3x^2-7x-5)^2} = \\frac{30x^2 + 50}{(3x^2 - 7x - 5)^2}\\).",
                 timeLimitSeconds: 90
             },
             {
-                question: "Use the quotient rule to find the derivative, h'(x), of the following function. h(x) = -7x^2 / (-10x^2 + 4x - 3)",
-                options: ["A) (-28x^2 + 42x) / (-10x^2 + 4x - 3)^2", "B) (28x^2 - 42x) / (-10x^2 + 4x - 3)^2", "C) (-28x^2 + 42x) / (-10x^2 + 4x - 3)", "D) (-14x) / (-20x + 4)"],
-                correctIndex: 0, // A
-                explanation: "h'(x) = [(-14x)(-10x^2+4x-3) - (-7x^2)(-20x+4)] / denominator^2 = (-28x^2 + 42x) / (-10x^2 + 4x - 3)^2.",
+                question: "Use the quotient rule to find the derivative, \\(h'(x)\\), of the following function. \\[ h(x) = -\\frac{7x^2}{-10x^2 + 4x - 3} \\]",
+                options: ["A) \\(\\frac{-28x^2 + 42x}{(-10x^2 + 4x - 3)^2}\\)", "B) \\(\\frac{28x^2 - 42x}{(-10x^2 + 4x - 3)^2}\\)", "C) \\(\\frac{-28x^2 + 42x}{-10x^2 + 4x - 3}\\)", "D) \\(\\frac{-14x}{-20x + 4}\\)"],
+                correctIndex: 0,
+                explanation: "\\(h'(x) = \\frac{(-14x)(-10x^2+4x-3) - (-7x^2)(-20x+4)}{(-10x^2+4x-3)^2} = \\frac{-28x^2 + 42x}{(-10x^2 + 4x - 3)^2}\\).",
                 timeLimitSeconds: 90
             },
             {
-                question: "Use the quotient rule to evaluate h'(a) for the given function h(x) and a. h(x) = -6x^2 / (4x^2 + 6x - 10), a = 2",
-                options: ["A) -8/27", "B) 16/3", "C) 8/27", "D) 1/3"],
-                correctIndex: 2, // C
-                explanation: "h'(x) = (-36x^2 + 120x) / (4x^2 + 6x - 10)^2. Plugging in x = 2: Numerator = 96. Denominator = 324. 96/324 simplifies to 8/27.",
+                question: "Use the quotient rule to evaluate \\(h'(a)\\) for the given function \\(h(x)\\) and \\(a\\). \\[ h(x) = -\\frac{6x^2}{4x^2 + 6x - 10}, \\quad a = 2 \\]",
+                options: ["A) \\(-\\frac{8}{27}\\)", "B) \\(\\frac{16}{3}\\)", "C) \\(\\frac{8}{27}\\)", "D) \\(\\frac{1}{3}\\)"],
+                correctIndex: 2,
+                explanation: "\\(h'(x) = \\frac{-36x^2 + 120x}{(4x^2 + 6x - 10)^2}\\). Plugging in \\(x = 2\\): Numerator = \\(96\\). Denominator = \\(324\\). \\(96/324\\) simplifies to \\(8/27\\).",
                 timeLimitSeconds: 60
             }
         ];
@@ -174,13 +219,23 @@
         let timerInterval;
         let timeLeft;
         let isAnswered = false;
+        
+        // Tracking variables
+        let studentName = '';
+        let quizStartTime = 0;
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             renderAdminQuestions();
-            // Pre-generate QR code for current URL
+            renderStudentResults();
             generateQR();
         });
+
+        function typesetMath() {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch((err) => console.log('MathJax error:', err));
+            }
+        }
 
         // --- NAVIGATION ---
         function showView(view) {
@@ -192,6 +247,7 @@
                 resetQuiz();
             } else {
                 document.getElementById('admin-view').classList.remove('hidden');
+                renderStudentResults(); // Refresh results when opening admin
             }
         }
 
@@ -230,11 +286,12 @@
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center bg-white p-2 border rounded";
                 li.innerHTML = `
-                    <span class="truncate w-3/4">${index + 1}. ${q.question}</span>
+                    <span class="truncate w-3/4 math-scroll">${index + 1}. ${q.question}</span>
                     <button onclick="deleteQuestion(${index})" class="text-red-500 hover:text-red-700 font-bold">&times;</button>
                 `;
                 list.appendChild(li);
             });
+            typesetMath();
         }
 
         function deleteQuestion(index) {
@@ -253,9 +310,36 @@
             }
         }
 
+        // NEW: Render Student Results Table
+        function renderStudentResults() {
+            const results = JSON.parse(localStorage.getItem('quizResults')) || [];
+            const list = document.getElementById('results-list');
+            list.innerHTML = '';
+            
+            // Display newest first
+            results.slice().reverse().forEach((r) => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-gray-100";
+                tr.innerHTML = `
+                    <td class="p-2 font-medium">${r.name}</td>
+                    <td class="p-2 font-bold ${r.score === questions.length ? 'text-green-600' : 'text-blue-600'}">${r.score} / ${questions.length}</td>
+                    <td class="p-2">${r.time}</td>
+                    <td class="p-2 text-xs text-gray-500">${r.date}</td>
+                `;
+                list.appendChild(tr);
+            });
+        }
+
+        function clearResults() {
+            if (confirm("Are you sure you want to delete all student results? This cannot be undone.")) {
+                localStorage.removeItem('quizResults');
+                renderStudentResults();
+            }
+        }
+
         function generateQR() {
             const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = ''; // Clear previous
+            qrContainer.innerHTML = ''; 
             const currentUrl = window.location.href;
             new QRCode(qrContainer, {
                 text: currentUrl,
@@ -269,12 +353,21 @@
 
         // --- QUIZ ENGINE ---
         function startQuiz() {
+            const nameInput = document.getElementById('student-name').value.trim();
+            if (!nameInput) {
+                alert("Please enter your name to start the quiz.");
+                return;
+            }
             if (questions.length === 0) {
                 alert("No questions available. Please add some in the Admin Panel.");
                 return;
             }
+
+            studentName = nameInput;
+            quizStartTime = Date.now(); // Record start time
             currentQIndex = 0;
             score = 0;
+            
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.add('hidden');
             document.getElementById('quiz-screen').classList.remove('hidden');
@@ -285,28 +378,23 @@
             isAnswered = false;
             const q = questions[currentQIndex];
             
-            // Update Progress
             document.getElementById('question-progress').innerText = `Question ${currentQIndex + 1} of ${questions.length}`;
-            
-            // Update Question Text
             document.getElementById('question-text').innerText = q.question;
             
-            // Hide feedback and next button
             document.getElementById('feedback-container').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
 
-            // Render Options
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
             q.options.forEach((opt, index) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-3 border rounded hover:bg-blue-50 transition font-medium";
+                btn.className = "w-full text-left p-3 border rounded hover:bg-blue-50 transition font-medium math-scroll";
                 btn.innerText = opt;
                 btn.onclick = () => selectAnswer(index, btn);
                 optionsContainer.appendChild(btn);
             });
 
-            // Start Timer
+            typesetMath();
             startTimer(q.timeLimitSeconds);
         }
 
@@ -344,19 +432,17 @@
             const isCorrect = selectedIndex === q.correctIndex;
             const allButtons = document.getElementById('options-container').children;
 
-            // Disable all buttons
             for (let btn of allButtons) {
                 btn.disabled = true;
                 btn.classList.remove('hover:bg-blue-50');
             }
 
-            // Highlight selected and correct
             if (isCorrect) {
                 score++;
                 btnElement.classList.add('correct');
             } else {
                 btnElement.classList.add('wrong');
-                allButtons[q.correctIndex].classList.add('correct'); // Show the right answer
+                allButtons[q.correctIndex].classList.add('correct'); 
             }
 
             showFeedback(isCorrect, q.explanation);
@@ -369,7 +455,6 @@
             const q = questions[currentQIndex];
             const allButtons = document.getElementById('options-container').children;
 
-            // Disable all buttons and show correct answer
             for (let btn of allButtons) {
                 btn.disabled = true;
                 btn.classList.remove('hover:bg-blue-50');
@@ -398,6 +483,8 @@
             }
 
             expText.innerText = explanation;
+            typesetMath();
+            
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
@@ -411,13 +498,35 @@
         }
 
         function showResults() {
+            clearInterval(timerInterval);
+            const quizEndTime = Date.now();
+            
+            // Calculate total time taken in seconds
+            const totalTimeSeconds = Math.round((quizEndTime - quizStartTime) / 1000);
+            const minutes = Math.floor(totalTimeSeconds / 60);
+            const seconds = totalTimeSeconds % 60;
+            const formattedTime = `${minutes}m ${seconds}s`;
+
+            // Save Result to LocalStorage
+            const results = JSON.parse(localStorage.getItem('quizResults')) || [];
+            results.push({
+                name: studentName,
+                score: score, // Store raw score number
+                time: formattedTime,
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            });
+            localStorage.setItem('quizResults', JSON.stringify(results));
+
+            // Update UI
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.remove('hidden');
             document.getElementById('final-score').innerText = `${score} / ${questions.length}`;
+            document.getElementById('time-taken').innerText = formattedTime;
         }
 
         function resetQuiz() {
             clearInterval(timerInterval);
+            document.getElementById('student-name').value = ''; // Clear name input
             document.getElementById('start-screen').classList.remove('hidden');
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.add('hidden');
