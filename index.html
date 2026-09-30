@@ -32,6 +32,7 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .math-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 5px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
@@ -39,28 +40,29 @@
     <!-- Navigation -->
     <nav class="bg-blue-600 text-white p-4 shadow-md flex justify-center space-x-4">
         <button onclick="showView('student')" class="hover:underline font-bold">Take Quiz</button>
-        <button onclick="showView('admin')" class="hover:underline font-bold">Admin Panel</button>
+        <button onclick="showView('admin')" class="hover:underline font-bold">Teacher Access</button>
     </nav>
 
     <main class="flex-grow flex items-center justify-center p-4">
 
         <!-- ===================== STUDENT VIEW ===================== -->
-        <div id="student-view" class="w-full max-w-2xl bg-white p-6 rounded-lg shadow-lg fade-in">
+        <div id="student-view" class="w-full max-w-3xl bg-white p-6 rounded-lg shadow-lg fade-in">
             
             <!-- Start Screen -->
             <div id="start-screen" class="text-center">
                 <h1 class="text-3xl font-bold mb-4 text-blue-600">Daily Quiz</h1>
-                <p class="mb-4 text-gray-600">Please enter your name to begin:</p>
-                <input type="text" id="student-name" class="w-full max-w-xs p-3 border border-gray-300 rounded mb-6 text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your Name">
+                <p class="mb-4 text-gray-600 font-bold text-lg">Please enter your full name to begin:</p>
+                <input type="text" id="student-name" class="w-full max-w-md p-4 border-2 border-blue-300 rounded mb-6 text-center text-xl focus:outline-none focus:ring-4 focus:ring-blue-500" placeholder="Type your name here...">
                 <br>
-                <button onclick="startQuiz()" class="bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-bold hover:bg-blue-700 transition">Start Quiz</button>
+                <button onclick="startQuiz()" class="bg-blue-600 text-white px-10 py-4 rounded-full text-xl font-bold hover:bg-blue-700 transition shadow-lg">Start Quiz</button>
             </div>
 
             <!-- Quiz Screen -->
             <div id="quiz-screen" class="hidden">
                 <div class="flex justify-between items-center mb-4">
                     <span id="question-progress" class="text-sm font-semibold text-gray-500">Question 1 of 4</span>
-                    <span id="timer-display" class="text-xl font-bold text-red-600 bg-red-100 px-3 py-1 rounded">Time: 60s</span>
+                    <!-- Stopwatch replaces countdown -->
+                    <span id="timer-display" class="text-xl font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded">Time: 0s</span>
                 </div>
                 
                 <h2 id="question-text" class="text-xl font-semibold mb-6 math-scroll"></h2>
@@ -78,17 +80,38 @@
             </div>
 
             <!-- Results Screen -->
-            <div id="result-screen" class="hidden text-center">
-                <h2 class="text-3xl font-bold mb-4 text-green-600">Quiz Completed!</h2>
-                <p class="text-xl mb-2">Your Score: <span id="final-score" class="font-bold"></span></p>
-                <p class="text-lg mb-6 text-gray-600">Time taken: <span id="time-taken" class="font-bold"></span></p>
-                <button onclick="resetQuiz()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">Try Again</button>
+            <div id="result-screen" class="hidden">
+                <h2 class="text-3xl font-bold mb-4 text-center text-green-600">Quiz Completed!</h2>
+                <div class="text-center mb-6">
+                    <p class="text-xl mb-2">Your Score: <span id="final-score" class="font-bold"></span></p>
+                    <p class="text-lg text-gray-600">Total Time: <span id="time-taken" class="font-bold"></span></p>
+                </div>
+                
+                <h3 class="font-bold text-lg mb-2 border-b pb-2">Detailed Breakdown</h3>
+                <div class="overflow-x-auto max-h-80 mb-6">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead class="bg-gray-200 sticky top-0">
+                            <tr>
+                                <th class="p-2 border">Question</th>
+                                <th class="p-2 border">Your Answer</th>
+                                <th class="p-2 border">Correct?</th>
+                                <th class="p-2 border">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailed-results-body">
+                            <!-- Injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center">
+                    <button onclick="resetQuiz()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">Finish</button>
+                </div>
             </div>
         </div>
 
         <!-- ===================== ADMIN VIEW ===================== -->
         <div id="admin-view" class="w-full max-w-5xl bg-white p-6 rounded-lg shadow-lg hidden fade-in">
-            <h2 class="text-2xl font-bold mb-4 text-blue-600">Admin Panel</h2>
+            <h2 class="text-2xl font-bold mb-4 text-blue-600">Teacher Dashboard</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- Left Column: Add Question -->
@@ -122,12 +145,8 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium">Explanation (Shown after timer ends)</label>
+                            <label class="block text-sm font-medium">Explanation (Shown after answering)</label>
                             <textarea id="q-explanation" required class="w-full p-2 border rounded" rows="2"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">Time Limit (Seconds)</label>
-                            <input type="number" id="q-time" value="60" required class="w-full p-2 border rounded">
                         </div>
                         <button type="submit" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition">Add Question</button>
                     </form>
@@ -151,11 +170,14 @@
                         </ul>
                     </div>
 
-                    <!-- NEW: Student Results Section -->
+                    <!-- Student Results Section -->
                     <div class="bg-gray-50 p-4 rounded border">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="font-bold text-lg">Student Results</h3>
-                            <button onclick="clearResults()" class="text-xs text-red-500 hover:underline">Clear All Results</button>
+                            <div class="space-x-2">
+                                <button onclick="downloadCSV()" class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">Export CSV</button>
+                                <button onclick="clearResults()" class="text-xs text-red-500 hover:underline">Clear All</button>
+                            </div>
                         </div>
                         <div class="overflow-x-auto max-h-60">
                             <table class="w-full text-sm text-left border-collapse">
@@ -163,7 +185,7 @@
                                     <tr>
                                         <th class="p-2 border-b">Name</th>
                                         <th class="p-2 border-b">Score</th>
-                                        <th class="p-2 border-b">Time</th>
+                                        <th class="p-2 border-b">Total Time</th>
                                         <th class="p-2 border-b">Date</th>
                                     </tr>
                                 </thead>
@@ -180,35 +202,35 @@
     </main>
 
     <script>
+        // --- CONFIGURATION ---
+        // Change this password to whatever you want!
+        const TEACHER_PASSWORD = "admin123"; 
+
         // --- DEFAULT DATA (Formatted with LaTeX) ---
         const defaultQuestions = [
             {
                 question: "Use the quotient rule to evaluate \\(h'(a)\\) for the given function \\(h(x)\\) and \\(a\\). \\[ h(x) = \\frac{3x^2}{x^2 + 9x + 9}, \\quad a = -3 \\]",
                 options: ["A) \\(-9\\)", "B) \\(1\\)", "C) \\(-1\\)", "D) \\(3\\)"],
                 correctIndex: 1,
-                explanation: "\\(h'(x) = \\frac{(6x)(x^2+9x+9) - (3x^2)(2x+9)}{(x^2+9x+9)^2} = \\frac{27x^2 + 54x}{(x^2+9x+9)^2}\\). Plugging in \\(x = -3\\): Numerator = \\(81\\), Denominator = \\(81\\). \\(81/81 = 1\\).",
-                timeLimitSeconds: 60
+                explanation: "\\(h'(x) = \\frac{(6x)(x^2+9x+9) - (3x^2)(2x+9)}{(x^2+9x+9)^2} = \\frac{27x^2 + 54x}{(x^2+9x+9)^2}\\). Plugging in \\(x = -3\\): Numerator = \\(81\\), Denominator = \\(81\\). \\(81/81 = 1\\)."
             },
             {
                 question: "Use the quotient rule to find the derivative, \\(h'(x)\\), of the following function. \\[ h(x) = -\\frac{10x}{3x^2 - 7x - 5} \\]",
                 options: ["A) \\(\\frac{-30x^2 - 50}{(3x^2 - 7x - 5)^2}\\)", "B) \\(\\frac{30x^2 + 50}{3x^2 - 7x - 5}\\)", "C) \\(\\frac{30x^2 + 50}{(3x^2 - 7x - 5)^2}\\)", "D) \\(\\frac{-60x + 70}{(3x^2 - 7x - 5)^2}\\)"],
                 correctIndex: 2,
-                explanation: "\\(h'(x) = \\frac{(-10)(3x^2-7x-5) - (-10x)(6x-7)}{(3x^2-7x-5)^2} = \\frac{30x^2 + 50}{(3x^2 - 7x - 5)^2}\\).",
-                timeLimitSeconds: 90
+                explanation: "\\(h'(x) = \\frac{(-10)(3x^2-7x-5) - (-10x)(6x-7)}{(3x^2-7x-5)^2} = \\frac{30x^2 + 50}{(3x^2 - 7x - 5)^2}\\)."
             },
             {
                 question: "Use the quotient rule to find the derivative, \\(h'(x)\\), of the following function. \\[ h(x) = -\\frac{7x^2}{-10x^2 + 4x - 3} \\]",
                 options: ["A) \\(\\frac{-28x^2 + 42x}{(-10x^2 + 4x - 3)^2}\\)", "B) \\(\\frac{28x^2 - 42x}{(-10x^2 + 4x - 3)^2}\\)", "C) \\(\\frac{-28x^2 + 42x}{-10x^2 + 4x - 3}\\)", "D) \\(\\frac{-14x}{-20x + 4}\\)"],
                 correctIndex: 0,
-                explanation: "\\(h'(x) = \\frac{(-14x)(-10x^2+4x-3) - (-7x^2)(-20x+4)}{(-10x^2+4x-3)^2} = \\frac{-28x^2 + 42x}{(-10x^2 + 4x - 3)^2}\\).",
-                timeLimitSeconds: 90
+                explanation: "\\(h'(x) = \\frac{(-14x)(-10x^2+4x-3) - (-7x^2)(-20x+4)}{(-10x^2+4x-3)^2} = \\frac{-28x^2 + 42x}{(-10x^2 + 4x - 3)^2}\\)."
             },
             {
                 question: "Use the quotient rule to evaluate \\(h'(a)\\) for the given function \\(h(x)\\) and \\(a\\). \\[ h(x) = -\\frac{6x^2}{4x^2 + 6x - 10}, \\quad a = 2 \\]",
                 options: ["A) \\(-\\frac{8}{27}\\)", "B) \\(\\frac{16}{3}\\)", "C) \\(\\frac{8}{27}\\)", "D) \\(\\frac{1}{3}\\)"],
                 correctIndex: 2,
-                explanation: "\\(h'(x) = \\frac{-36x^2 + 120x}{(4x^2 + 6x - 10)^2}\\). Plugging in \\(x = 2\\): Numerator = \\(96\\). Denominator = \\(324\\). \\(96/324\\) simplifies to \\(8/27\\).",
-                timeLimitSeconds: 60
+                explanation: "\\(h'(x) = \\frac{-36x^2 + 120x}{(4x^2 + 6x - 10)^2}\\). Plugging in \\(x = 2\\): Numerator = \\(96\\). Denominator = \\(324\\). \\(96/324\\) simplifies to \\(8/27\\)."
             }
         ];
 
@@ -217,12 +239,12 @@
         let currentQIndex = 0;
         let score = 0;
         let timerInterval;
-        let timeLeft;
+        let timeElapsed = 0; // Stopwatch counter in seconds
         let isAnswered = false;
         
-        // Tracking variables
         let studentName = '';
         let quizStartTime = 0;
+        let studentAnswers = []; // Stores detailed per-question data
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -237,8 +259,16 @@
             }
         }
 
-        // --- NAVIGATION ---
+        // --- NAVIGATION & SECURITY ---
         function showView(view) {
+            if (view === 'admin') {
+                const pwd = prompt("Enter Teacher Password:");
+                if (pwd !== TEACHER_PASSWORD) {
+                    alert("Access Denied. Incorrect password.");
+                    return;
+                }
+            }
+
             document.getElementById('student-view').classList.add('hidden');
             document.getElementById('admin-view').classList.add('hidden');
             
@@ -247,7 +277,7 @@
                 resetQuiz();
             } else {
                 document.getElementById('admin-view').classList.remove('hidden');
-                renderStudentResults(); // Refresh results when opening admin
+                renderStudentResults(); 
             }
         }
 
@@ -264,8 +294,7 @@
                     document.getElementById('opt-3').value
                 ],
                 correctIndex: parseInt(document.querySelector('input[name="correct-option"]:checked').value),
-                explanation: document.getElementById('q-explanation').value,
-                timeLimitSeconds: parseInt(document.getElementById('q-time').value)
+                explanation: document.getElementById('q-explanation').value
             };
 
             questions.push(newQuestion);
@@ -310,20 +339,19 @@
             }
         }
 
-        // NEW: Render Student Results Table
+        // --- STUDENT RESULTS LOGIC (ADMIN VIEW) ---
         function renderStudentResults() {
             const results = JSON.parse(localStorage.getItem('quizResults')) || [];
             const list = document.getElementById('results-list');
             list.innerHTML = '';
             
-            // Display newest first
             results.slice().reverse().forEach((r) => {
                 const tr = document.createElement('tr');
                 tr.className = "border-b hover:bg-gray-100";
                 tr.innerHTML = `
                     <td class="p-2 font-medium">${r.name}</td>
                     <td class="p-2 font-bold ${r.score === questions.length ? 'text-green-600' : 'text-blue-600'}">${r.score} / ${questions.length}</td>
-                    <td class="p-2">${r.time}</td>
+                    <td class="p-2 text-gray-600">${r.totalTime}</td>
                     <td class="p-2 text-xs text-gray-500">${r.date}</td>
                 `;
                 list.appendChild(tr);
@@ -337,36 +365,41 @@
             }
         }
 
-        function generateQR() {
-            const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = ''; 
-            const currentUrl = window.location.href;
-            new QRCode(qrContainer, {
-                text: currentUrl,
-                width: 128,
-                height: 128,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
+        function downloadCSV() {
+            const results = JSON.parse(localStorage.getItem('quizResults')) || [];
+            if (results.length === 0) {
+                alert("No results to export!");
+                return;
+            }
+            
+            let csvContent = "data:text/csv;charset=utf-8,Name,Score,Total Questions,Total Time,Date\n";
+            results.forEach(r => {
+                csvContent += `"${r.name}",${r.score},${questions.length},"${r.totalTime}","${r.date}"\n`;
             });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "quiz_results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // --- QUIZ ENGINE ---
         function startQuiz() {
             const nameInput = document.getElementById('student-name').value.trim();
             if (!nameInput) {
-                alert("Please enter your name to start the quiz.");
-                return;
-            }
-            if (questions.length === 0) {
-                alert("No questions available. Please add some in the Admin Panel.");
+                alert("⚠️ Please enter your name to start the quiz.");
+                document.getElementById('student-name').focus();
                 return;
             }
 
             studentName = nameInput;
-            quizStartTime = Date.now(); // Record start time
+            quizStartTime = Date.now(); 
             currentQIndex = 0;
             score = 0;
+            studentAnswers = []; // Reset detailed tracking
             
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.add('hidden');
@@ -376,6 +409,7 @@
 
         function loadQuestion() {
             isAnswered = false;
+            timeElapsed = 0; // Reset stopwatch for the new question
             const q = questions[currentQIndex];
             
             document.getElementById('question-progress').innerText = `Question ${currentQIndex + 1} of ${questions.length}`;
@@ -395,42 +429,47 @@
             });
 
             typesetMath();
-            startTimer(q.timeLimitSeconds);
+            startStopwatch(); // Start counting up
         }
 
-        function startTimer(seconds) {
+        function startStopwatch() {
             clearInterval(timerInterval);
-            timeLeft = seconds;
             updateTimerDisplay();
             
             timerInterval = setInterval(() => {
-                timeLeft--;
+                timeElapsed++;
                 updateTimerDisplay();
-                
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    handleTimeout();
-                }
             }, 1000);
         }
 
         function updateTimerDisplay() {
-            document.getElementById('timer-display').innerText = `Time: ${timeLeft}s`;
-            if (timeLeft <= 10) {
-                document.getElementById('timer-display').classList.add('bg-red-200', 'text-red-800');
-            } else {
-                document.getElementById('timer-display').classList.remove('bg-red-200', 'text-red-800');
-            }
+            // Format as mm:ss if needed, but for simplicity, just show total seconds.
+            const minutes = Math.floor(timeElapsed / 60);
+            const seconds = timeElapsed % 60;
+            const formatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').innerText = `Time: ${formatted}`;
         }
 
         function selectAnswer(selectedIndex, btnElement) {
             if (isAnswered) return;
             isAnswered = true;
-            clearInterval(timerInterval);
+            clearInterval(timerInterval); // Stop the stopwatch
 
             const q = questions[currentQIndex];
             const isCorrect = selectedIndex === q.correctIndex;
             const allButtons = document.getElementById('options-container').children;
+
+            // Record the time spent on this specific question
+            const timeSpentOnThisQ = timeElapsed;
+
+            // Store data for the results screen
+            studentAnswers.push({
+                questionText: q.question,
+                selectedOption: q.options[selectedIndex],
+                correctOption: q.options[q.correctIndex],
+                isCorrect: isCorrect,
+                timeSpent: timeSpentOnThisQ
+            });
 
             for (let btn of allButtons) {
                 btn.disabled = true;
@@ -448,33 +487,14 @@
             showFeedback(isCorrect, q.explanation);
         }
 
-        function handleTimeout() {
-            if (isAnswered) return;
-            isAnswered = true;
-            
-            const q = questions[currentQIndex];
-            const allButtons = document.getElementById('options-container').children;
-
-            for (let btn of allButtons) {
-                btn.disabled = true;
-                btn.classList.remove('hover:bg-blue-50');
-            }
-            allButtons[q.correctIndex].classList.add('correct');
-
-            showFeedback(false, q.explanation, true);
-        }
-
-        function showFeedback(isCorrect, explanation, isTimeout = false) {
+        function showFeedback(isCorrect, explanation) {
             const feedbackContainer = document.getElementById('feedback-container');
             const title = document.getElementById('feedback-title');
             const expText = document.getElementById('feedback-explanation');
 
             feedbackContainer.classList.remove('hidden');
             
-            if (isTimeout) {
-                title.innerText = "Time's Up!";
-                title.className = "font-bold text-lg mb-2 text-red-600";
-            } else if (isCorrect) {
+            if (isCorrect) {
                 title.innerText = "Correct!";
                 title.className = "font-bold text-lg mb-2 text-green-600";
             } else {
@@ -501,35 +521,61 @@
             clearInterval(timerInterval);
             const quizEndTime = Date.now();
             
-            // Calculate total time taken in seconds
+            // Calculate total time taken for the entire quiz
             const totalTimeSeconds = Math.round((quizEndTime - quizStartTime) / 1000);
             const minutes = Math.floor(totalTimeSeconds / 60);
             const seconds = totalTimeSeconds % 60;
-            const formattedTime = `${minutes}m ${seconds}s`;
+            const formattedTotalTime = `${minutes}m ${seconds}s`;
 
-            // Save Result to LocalStorage
+            // SAVE SUMMARY TO LOCAL STORAGE (For Admin Panel)
             const results = JSON.parse(localStorage.getItem('quizResults')) || [];
             results.push({
                 name: studentName,
-                score: score, // Store raw score number
-                time: formattedTime,
+                score: score,
+                totalTime: formattedTotalTime,
                 date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             });
             localStorage.setItem('quizResults', JSON.stringify(results));
+
+            // BUILD DETAILED TABLE FOR STUDENT
+            const detailedBody = document.getElementById('detailed-results-body');
+            detailedBody.innerHTML = '';
+            
+            studentAnswers.forEach((ans, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-gray-50";
+                
+                // Format the time for this specific question
+                const qMin = Math.floor(ans.timeSpent / 60);
+                const qSec = ans.timeSpent % 60;
+                const qTimeFormatted = qMin > 0 ? `${qMin}m ${qSec}s` : `${qSec}s`;
+
+                tr.innerHTML = `
+                    <td class="p-2 border math-scroll max-w-xs truncate">${index + 1}. ${ans.questionText}</td>
+                    <td class="p-2 border math-scroll text-sm ${ans.isCorrect ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">${ans.selectedOption}</td>
+                    <td class="p-2 border text-center">${ans.isCorrect ? '✅' : '❌'}</td>
+                    <td class="p-2 border text-center">${qTimeFormatted}</td>
+                `;
+                detailedBody.appendChild(tr);
+            });
 
             // Update UI
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.remove('hidden');
             document.getElementById('final-score').innerText = `${score} / ${questions.length}`;
-            document.getElementById('time-taken').innerText = formattedTime;
+            document.getElementById('time-taken').innerText = formattedTotalTime;
+            
+            // Render MathJax in the new detailed table
+            typesetMath();
         }
 
         function resetQuiz() {
             clearInterval(timerInterval);
-            document.getElementById('student-name').value = ''; // Clear name input
+            document.getElementById('student-name').value = ''; 
             document.getElementById('start-screen').classList.remove('hidden');
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('detailed-results-body').innerHTML = '';
         }
     </script>
 </body>
